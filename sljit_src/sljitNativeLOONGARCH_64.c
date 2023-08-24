@@ -332,6 +332,10 @@ lower parts in the instruction word, denoted by the “L” and “H” suffixes
 
 #define INST(inst, type) ((sljit_ins)((type & SLJIT_32) ? inst##_W : inst##_D))
 
+/* Using HWCAP for detecting whether LSX is available */
+#include <sys/auxv.h>
+#define LOONGARCH_HWCAP_LSX  (1 << 4)
+
 static sljit_s32 push_inst(struct sljit_compiler *compiler, sljit_ins ins)
 {
 	sljit_ins *ptr = (sljit_ins*)ensure_buf(compiler, sizeof(sljit_ins));
@@ -634,6 +638,9 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_has_cpu_feature(sljit_s32 feature_type)
 		/* Available by default. */
 		return 1;
 #endif
+
+	case SLJIT_HAS_SIMD:
+		return getauxval(AT_HWCAP) & LOONGARCH_HWCAP_LSX;
 
 	case SLJIT_HAS_CLZ:
 	case SLJIT_HAS_CTZ:

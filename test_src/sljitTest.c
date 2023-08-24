@@ -12205,6 +12205,8 @@ static void test95(void)
 	successful_tests++;
 }
 
+#if !(defined SLJIT_CONFIG_LOONGARCH && SLJIT_CONFIG_LOONGARCH)
+
 static void simd_set(sljit_u8* buf, sljit_u8 start, sljit_s32 length)
 {
 	do {
@@ -13742,6 +13744,8 @@ static void test101(void)
 	successful_tests++;
 }
 
+#endif /* SLJIT_CONFIG_LOONGARCH */
+
 int sljit_test(int argc, char* argv[])
 {
 	sljit_s32 has_arg = (argc >= 2 && argv[1][0] == '-' && argv[1][2] == '\0');
@@ -13850,12 +13854,14 @@ int sljit_test(int argc, char* argv[])
 	test93();
 	test94();
 	test95();
+#if !(defined SLJIT_CONFIG_LOONGARCH && SLJIT_CONFIG_LOONGARCH)
 	test96();
 	test97();
 	test98();
 	test99();
 	test100();
 	test101();
+#endif /* SLJIT_CONFIG_LOONGARCH */
 
 #if (defined SLJIT_EXECUTABLE_ALLOCATOR && SLJIT_EXECUTABLE_ALLOCATOR)
 	sljit_free_unused_memory_exec();
