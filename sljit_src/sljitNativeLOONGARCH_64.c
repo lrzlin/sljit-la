@@ -348,9 +348,9 @@ lower parts in the instruction word, denoted by the “L” and “H” suffixes
 
 /* LoongArch CPUCFG register for feature detection */
 #define LOONGARCH_CFG2			0x02
-#define LOONGARCH_FEATURE_LAMCAS	(1 << 28)
+#define LOONGARCH_CFG2_LAMCAS	(1 << 28)
 
-static sljit_u32 cpu_feature_list = 0;
+static sljit_u32 cfg2_feature_list = 0;
 
 /* According to Software Development and Build Convention for LoongArch Architectures,
 +   the status of LSX and LASX extension must be checked through HWCAP */
@@ -367,12 +367,12 @@ static sljit_u32 hwcap_feature_list = 0;
 
 static SLJIT_INLINE sljit_u32 get_cpu_features(sljit_u32 feature_type)
  {
- 	if (cpu_feature_list == 0)
- 		__asm__ ("cpucfg %0, %1" : "+&r"(cpu_feature_list) : "r"(LOONGARCH_CFG2));
+ 	if (cfg2_feature_list == 0)
+ 		__asm__ ("cpucfg %0, %1" : "+&r"(cfg2_feature_list) : "r"(LOONGARCH_CFG2));
 	if (hwcap_feature_list == 0)
 		getauxval(AT_HWCAP);
 
-	return feature_type ? hwcap_feature_list : cpu_feature_list;
+	return feature_type ? hwcap_feature_list : cfg2_feature_list;
  }
 
 static sljit_s32 push_inst(struct sljit_compiler *compiler, sljit_ins ins)
@@ -3237,9 +3237,6 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_load(struct sljit_compiler 
 	CHECK_ERROR();
 	CHECK(check_sljit_emit_atomic_load(compiler, op, dst_reg, mem_reg));
 
-	if (!(LOONGARCH_FEATURE_LAMCAS & get_cpu_features()))
-		return SLJIT_ERR_UNSUPPORTED;
-
 	switch(GET_OPCODE(op)) {
 	case SLJIT_MOV_U8:
 		ins = LD_BU;
@@ -3273,9 +3270,6 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_atomic_store(struct sljit_compiler
 
 	CHECK_ERROR();
 	CHECK(check_sljit_emit_atomic_store(compiler, op, src_reg, mem_reg, temp_reg));
-
-	if (!(LOONGARCH_FEATURE_LAMCAS & get_cpu_features()))
-		return SLJIT_ERR_UNSUPPORTED;
 
 	switch (GET_OPCODE(op)) {
 	case SLJIT_MOV_U8:
