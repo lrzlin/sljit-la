@@ -373,7 +373,7 @@ static SLJIT_INLINE sljit_u32 get_cpu_features(sljit_u32 feature_type)
  	if (cfg2_feature_list == 0)
  		__asm__ ("cpucfg %0, %1" : "+&r"(cfg2_feature_list) : "r"(LOONGARCH_CFG2));
 	if (hwcap_feature_list == 0)
-		getauxval(AT_HWCAP);
+		hwcap_feature_list = (sljit_u32)getauxval(AT_HWCAP);
 
 	return feature_type ? hwcap_feature_list : cfg2_feature_list;
  }
@@ -3116,14 +3116,14 @@ static sljit_s32 sljit_emit_simd_mem_offset(struct sljit_compiler *compiler, slj
 	sljit_s32 mem = *mem_ptr;
 
 	if (SLJIT_UNLIKELY(mem & OFFS_REG_MASK)) {
-		*mem_ptr = TMP_REG2;
-		FAIL_IF(push_inst(compiler, SLLI_D | RD(TMP_REG2) | RJ(OFFS_REG(mem)) | IMM_I12(memw & 0x3)));
-		return push_inst(compiler, ADD_D | RD(TMP_REG2) | RJ(TMP_REG2) | RK(mem & REG_MASK));
+		*mem_ptr = TMP_REG3;
+		FAIL_IF(push_inst(compiler, SLLI_D | RD(TMP_REG3) | RJ(OFFS_REG(mem)) | IMM_I12(memw & 0x3)));
+		return push_inst(compiler, ADD_D | RD(TMP_REG3) | RJ(TMP_REG3) | RK(mem & REG_MASK));
 	}
 
 	if (!(mem & REG_MASK)) {
-		*mem_ptr = TMP_REG2;
-		return load_immediate(compiler, TMP_REG2, memw);
+		*mem_ptr = TMP_REG3;
+		return load_immediate(compiler, TMP_REG3, memw);
 	}
 
 	mem &= REG_MASK;
@@ -3133,10 +3133,10 @@ static sljit_s32 sljit_emit_simd_mem_offset(struct sljit_compiler *compiler, slj
 		return SLJIT_SUCCESS;
 	}
 
-	*mem_ptr = TMP_REG2;
+	*mem_ptr = TMP_REG3;
 
-	FAIL_IF(load_immediate(compiler, TMP_REG2, memw));
-	return push_inst(compiler, ADD_D | RD(TMP_REG2) | RJ(TMP_REG2) | RK(mem));
+	FAIL_IF(load_immediate(compiler, TMP_REG3, memw));
+	return push_inst(compiler, ADD_D | RD(TMP_REG3) | RJ(TMP_REG3) | RK(mem));
 }
 
 SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_simd_mov(struct sljit_compiler *compiler, sljit_s32 type,
@@ -3180,7 +3180,7 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_simd_mov(struct sljit_compiler *co
 	if (reg_size == 5)
 		ins = (type & SLJIT_SIMD_STORE) ? XVST : XVLD;
 
-	if ((srcdst & REG_MASK) && (srcdstw >= I12_MIN && srcdstw <= I12_MAX))
+	if (FAST_IS_REG(srcdst) && (srcdstw >= I12_MIN && srcdstw <= I12_MAX))
 		return push_inst(compiler, ins | IMM_I12(srcdstw) | RJ(srcdst) | FRD(freg));
 	else {
 		FAIL_IF(sljit_emit_simd_mem_offset(compiler, &srcdst, srcdstw));
