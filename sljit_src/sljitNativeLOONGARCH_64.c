@@ -329,6 +329,9 @@ lower parts in the instruction word, denoted by the “L” and “H” suffixes
 #define VLD	OPC_2RI12(0xb0)
 #define VST OPC_2RI12(0xb1)
 
+#define XVLD OPC_2RI12(0xb2)
+#define XVST OPC_2RI12(0xb3)
+
 #define I12_MAX (0x7ff)
 #define I12_MIN (-0x800)
 #define BRANCH16_MAX (0x7fff << 2)
@@ -3110,7 +3113,6 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_mem(struct sljit_compiler *compile
 
 static sljit_s32 sljit_emit_simd_mem_offset(struct sljit_compiler *compiler, sljit_s32 *mem_ptr, sljit_sw memw)
 {
-	sljit_ins ins;
 	sljit_s32 mem = *mem_ptr;
 
 	if (SLJIT_UNLIKELY(mem & OFFS_REG_MASK)) {
@@ -3156,7 +3158,7 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_simd_mov(struct sljit_compiler *co
 	if (reg_size == 5 && !(get_cpu_features(GET_HWCAP) & LOONGARCH_HWCAP_LASX))
 		return SLJIT_ERR_UNSUPPORTED;
 
-	if (type & SLJIT_TEST)
+	if (type & SLJIT_SIMD_TEST)
 		return SLJIT_SUCCESS;
 
 	if (!(srcdst & SLJIT_MEM)) {
