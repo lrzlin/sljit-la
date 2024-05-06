@@ -3162,7 +3162,7 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_simd_mov(struct sljit_compiler *co
 	sljit_s32 srcdst, sljit_sw srcdstw)
 {
 	sljit_s32 reg_size = SLJIT_SIMD_GET_REG_SIZE(type);
-	sljit_ins ins;
+	sljit_ins ins = 0;
 
 	CHECK_ERROR();
 	CHECK(check_sljit_emit_simd_mov(compiler, type, freg, srcdst, srcdstw));
@@ -3269,7 +3269,7 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_simd_lane_mov(struct sljit_compile
 {
 	sljit_s32 reg_size = SLJIT_SIMD_GET_REG_SIZE(type);
 	sljit_s32 elem_size = SLJIT_SIMD_GET_ELEM_SIZE(type);
-	sljit_ins ins;
+	sljit_ins ins = 0;
 
 	CHECK_ERROR();
 	CHECK(check_sljit_emit_simd_lane_mov(compiler, type, freg, lane_index, srcdst, srcdstw));
@@ -3420,7 +3420,7 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_simd_lane_replicate(struct sljit_c
 {
 	sljit_s32 reg_size = SLJIT_SIMD_GET_REG_SIZE(type);
 	sljit_s32 elem_size = SLJIT_SIMD_GET_ELEM_SIZE(type);
-	sljit_ins ins;
+	sljit_ins ins = 0;
 
 	CHECK_ERROR();
 	CHECK(check_sljit_emit_simd_lane_replicate(compiler, type, freg, src, src_lane_index));
@@ -3454,7 +3454,7 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_simd_extend(struct sljit_compiler 
 	sljit_s32 reg_size = SLJIT_SIMD_GET_REG_SIZE(type);
 	sljit_s32 elem_size = SLJIT_SIMD_GET_ELEM_SIZE(type);
 	sljit_s32 elem2_size = SLJIT_SIMD_GET_ELEM2_SIZE(type);
-	sljit_ins ins;
+	sljit_ins ins = 0;
 
 	CHECK_ERROR();
 	CHECK(check_sljit_emit_simd_extend(compiler, type, freg, src, srcw));
@@ -3489,15 +3489,24 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_simd_extend(struct sljit_compiler 
 		if (elem_size != 2 || elem2_size != 3)
 			return SLJIT_ERR_UNSUPPORTED;
 
-		return push_inst(compiler, VFCVTL_D_S | FRD(freg) | FRJ(src));
+		ins = 0;
+		if (reg_size == 5) {
+			ins = (sljit_ins)1 << 26;
+			FAIL_IF(push_inst(compiler, XVPERMI | FRD(src) | FRJ(src) | IMM_I8(16)));
+		}
+
+		return push_inst(compiler, VFCVTL_D_S | ins | FRD(freg) | FRJ(src));
 	}
 
 	ins = (type & SLJIT_SIMD_EXTEND_SIGNED) ? VSLLWIL : (VSLLWIL | (sljit_ins)1 << 18);
-
+ 
 	if (reg_size == 5)
 		ins |= (sljit_ins)1 << 26;
 
 	do {
+		if (reg_size == 5)
+			FAIL_IF(push_inst(compiler, XVPERMI | FRD(src) | FRJ(src) | IMM_I8(16)));
+
 		FAIL_IF(push_inst(compiler, ins | ((sljit_ins)1 << (13 + elem_size)) | FRD(freg) | FRJ(src)));
 		src = freg;
 	} while (++elem_size < elem2_size);
@@ -3511,7 +3520,7 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_simd_sign(struct sljit_compiler *c
 {
 	sljit_s32 reg_size = SLJIT_SIMD_GET_REG_SIZE(type);
 	sljit_s32 elem_size = SLJIT_SIMD_GET_ELEM_SIZE(type);
-	sljit_ins ins;
+	sljit_ins ins = 0;
 	sljit_s32 dst_r;
 
 	CHECK_ERROR();
