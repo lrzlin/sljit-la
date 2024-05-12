@@ -3316,8 +3316,8 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_simd_lane_mov(struct sljit_compile
 			ins |= (sljit_ins)lane_index << 18 | (sljit_ins)(1 << (23 - elem_size));
 			return push_inst(compiler, VSTELM | ins | FRD(freg) | RJ(srcdst));
 		} else {
-			// emit_op_mem(compiler, elem_size == 3 ? WORD_DATA : (elem_size == 2 ? INT_DATA : (elem_size == 1 ? HALF_DATA : BYTE_DATA)), TMP_REG2, srcdst, 0);
-
+			emit_op_mem(compiler, (elem_size == 3 ? WORD_DATA : (elem_size == 2 ? INT_DATA : (elem_size == 1 ? HALF_DATA : BYTE_DATA))) | LOAD_DATA, TMP_REG2, srcdst | SLJIT_MEM, 0);
+			srcdst = TMP_REG2;
 			ins = (sljit_ins)(0b111111 ^ (0b11111 >> elem_size)) << 10;
 
 			if (reg_size == 5) {
@@ -3342,27 +3342,27 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_simd_lane_mov(struct sljit_compile
 		if (type & SLJIT_SIMD_STORE) {
 			if (lane_index >= (2 << (3 - elem_size))) {
 				ins = (sljit_ins)(0b111111 ^ (0b11111 >> elem_size)) << 10;
-				FAIL_IF(push_inst(compiler, VOR_V | (sljit_ins)1 << 26 | FRD(TMP_FREG1) | FRJ(srcdst) | FRK(srcdst)));
-				FAIL_IF(push_inst(compiler, XVPERMI | (sljit_ins)1 << 18 | FRD(TMP_FREG1) | FRJ(srcdst) | IMM_I8(1)));
-				FAIL_IF(push_inst(compiler, VPICKVE2GR_U | ins | RD(TMP_REG2) | FRJ(TMP_FREG1) | IMM_V(lane_index % (2 << (3 - elem_size)))));
-				FAIL_IF(push_inst(compiler, VINSGR2VR | ins | FRD(TMP_FREG1) | RJ(TMP_REG2) | IMM_V(lane_index % (2 << (3 - elem_size)))));
-				return push_inst(compiler, XVPERMI | (sljit_ins)1 << 18 | FRD(freg) | FRJ(TMP_FREG1) | IMM_I8(2));
-			}
-
-			FAIL_IF(push_inst(compiler, VPICKVE2GR_U | ins | RD(TMP_REG2) | FRJ(srcdst) | IMM_V(lane_index)));
-			return push_inst(compiler, VINSGR2VR | ins | FRD(freg) | RJ(TMP_REG2) | IMM_V(lane_index));
-		} else {
-			if (lane_index >= (2 << (3 - elem_size))) {
-				ins = (sljit_ins)(0b111111 ^ (0b11111 >> elem_size)) << 10;
 				FAIL_IF(push_inst(compiler, VOR_V | (sljit_ins)1 << 26 | FRD(TMP_FREG1) | FRJ(freg) | FRK(freg)));
 				FAIL_IF(push_inst(compiler, XVPERMI | (sljit_ins)1 << 18 | FRD(TMP_FREG1) | FRJ(freg) | IMM_I8(1)));
 				FAIL_IF(push_inst(compiler, VPICKVE2GR_U | ins | RD(TMP_REG2) | FRJ(TMP_FREG1) | IMM_V(lane_index % (2 << (3 - elem_size)))));
-				FAIL_IF(push_inst(compiler, VINSGR2VR | ins | FRD(TMP_FREG1) | RJ(TMP_REG2) | IMM_V(lane_index % (2 << (3 - elem_size)))));
+				FAIL_IF(push_inst(compiler, VINSGR2VR | ins | FRD(TMP_FREG1) | RJ(TMP_REG2) | IMM_V(0)));
 				return push_inst(compiler, XVPERMI | (sljit_ins)1 << 18 | FRD(srcdst) | FRJ(TMP_FREG1) | IMM_I8(2));
 			}
 
 			FAIL_IF(push_inst(compiler, VPICKVE2GR_U | ins | RD(TMP_REG2) | FRJ(freg) | IMM_V(lane_index)));
-			return push_inst(compiler, VINSGR2VR | ins | FRD(srcdst) | RJ(TMP_REG2) | IMM_V(lane_index));
+			return push_inst(compiler, VINSGR2VR | ins | FRD(srcdst) | RJ(TMP_REG2) | IMM_V(0));
+		} else {
+			if (lane_index >= (2 << (3 - elem_size))) {
+				ins = (sljit_ins)(0b111111 ^ (0b11111 >> elem_size)) << 10;
+				FAIL_IF(push_inst(compiler, VOR_V | (sljit_ins)1 << 26 | FRD(TMP_FREG1) | FRJ(srcdst) | FRK(srcdst)));
+				FAIL_IF(push_inst(compiler, XVPERMI | (sljit_ins)1 << 18 | FRD(TMP_FREG1) | FRJ(srcdst) | IMM_I8(1)));
+				FAIL_IF(push_inst(compiler, VPICKVE2GR_U | ins | RD(TMP_REG2) | FRJ(TMP_FREG1) | IMM_V(0)));
+				FAIL_IF(push_inst(compiler, VINSGR2VR | ins | FRD(TMP_FREG1) | RJ(TMP_REG2) | IMM_V(lane_index % (2 << (3 - elem_size)))));
+				return push_inst(compiler, XVPERMI | (sljit_ins)1 << 18 | FRD(freg) | FRJ(TMP_FREG1) | IMM_I8(2));
+			}
+
+			FAIL_IF(push_inst(compiler, VPICKVE2GR_U | ins | RD(TMP_REG2) | FRJ(srcdst) | IMM_V(0)));
+			return push_inst(compiler, VINSGR2VR | ins | FRD(freg) | RJ(TMP_REG2) | IMM_V(lane_index));
 		}
 	}
 
