@@ -3337,31 +3337,12 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_simd_lane_mov(struct sljit_compile
 	}
 
 	if (type & SLJIT_SIMD_FLOAT) {
-		ins = (sljit_ins)(0b111111 ^ (0b11111 >> elem_size)) << 10;
+		ins = (reg_size == 5) ? (sljit_ins)(0b111111 ^ (0b111111 >> elem_size)) << 10 | (sljit_ins)1 << 26 : (sljit_ins)(0b111111 ^ (0b11111 >> elem_size)) << 10;
 
 		if (type & SLJIT_SIMD_STORE) {
-			if (lane_index >= (2 << (3 - elem_size))) {
-				sljit_u8 tmp_freg = (freg == TMP_FREG1) ? TMP_FREG2 : TMP_FREG1;
-				FAIL_IF(push_inst(compiler, VOR_V | (sljit_ins)1 << 26 | FRD(tmp_freg) | FRJ(freg) | FRK(freg)));
-				FAIL_IF(push_inst(compiler, XVPERMI | (sljit_ins)1 << 18 | FRD(tmp_freg) | FRJ(freg) | IMM_I8(1)));
-				FAIL_IF(push_inst(compiler, VPICKVE2GR_U | ins | RD(TMP_REG2) | FRJ(tmp_freg) | IMM_V(lane_index % (2 << (3 - elem_size)))));
-				FAIL_IF(push_inst(compiler, VXOR_V | (sljit_ins)1 << 26 | FRD(tmp_freg) | FRJ(tmp_freg) | FRK(tmp_freg)));
-				FAIL_IF(push_inst(compiler, VINSGR2VR | ins | FRD(tmp_freg) | RJ(TMP_REG2) | IMM_V(0)));
-				return push_inst(compiler, XVPERMI | (sljit_ins)1 << 18 | FRD(srcdst) | FRJ(tmp_freg) | IMM_I8(2));
-			}
-
 			FAIL_IF(push_inst(compiler, VPICKVE2GR_U | ins | RD(TMP_REG2) | FRJ(freg) | IMM_V(lane_index)));
 			return push_inst(compiler, VINSGR2VR | ins | FRD(srcdst) | RJ(TMP_REG2) | IMM_V(0));
 		} else {
-			if (lane_index >= (2 << (3 - elem_size))) {
-				sljit_u8 tmp_freg = (srcdst == TMP_FREG1) ? TMP_FREG2 : TMP_FREG1;
-				FAIL_IF(push_inst(compiler, VOR_V | (sljit_ins)1 << 26 | FRD(tmp_freg) | FRJ(srcdst) | FRK(srcdst)));
-				FAIL_IF(push_inst(compiler, VPICKVE2GR_U | ins | RD(TMP_REG2) | FRJ(tmp_freg) | IMM_V(0)));
-				FAIL_IF(push_inst(compiler, VXOR_V | (sljit_ins)1 << 26 | FRD(tmp_freg) | FRJ(tmp_freg) | FRK(tmp_freg)));
-				FAIL_IF(push_inst(compiler, VINSGR2VR | ins | FRD(tmp_freg) | RJ(TMP_REG2) | IMM_V(lane_index % (2 << (3 - elem_size)))));
-				return push_inst(compiler, XVPERMI | (sljit_ins)1 << 18 | FRD(freg) | FRJ(tmp_freg) | IMM_I8(2));
-			}
-
 			FAIL_IF(push_inst(compiler, VPICKVE2GR_U | ins | RD(TMP_REG2) | FRJ(srcdst) | IMM_V(0)));
 			return push_inst(compiler, VINSGR2VR | ins | FRD(freg) | RJ(TMP_REG2) | IMM_V(lane_index));
 		}
