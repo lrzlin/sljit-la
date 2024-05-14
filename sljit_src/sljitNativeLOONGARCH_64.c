@@ -3373,24 +3373,29 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_simd_lane_mov(struct sljit_compile
 	}
 
 	if (type & SLJIT_SIMD_STORE) {
-		ins = reg_size == 5 ? (sljit_ins)(0b111111 ^ (0b111111 >> elem_size)) << 10 : (sljit_ins)(0b111111 ^ (0b11111 >> elem_size)) << 10;
+		ins = (sljit_ins)(0b111111 ^ (0b11111 >> elem_size)) << 10;
 
 		if (type & SLJIT_SIMD_LANE_SIGNED)
 			ins |= (sljit_ins)(VPICKVE2GR_U ^ (0b111 << 18));
 		else
 			ins |= VPICKVE2GR_U;
 
-		if (lane_index >= (2 << (3 - elem_size))) {
-			ins = (sljit_ins)(0b111111 ^ (0b11111 >> elem_size)) << 10;
+		if (reg_size == 5) {
+			if (elem_size < 2) {
+				if (lane_index >= (2 << (3 - elem_size))) {
+					if (type & SLJIT_SIMD_LANE_SIGNED)
+						ins |= (sljit_ins)(VPICKVE2GR_U ^ (0b111 << 18));
+					else
+						ins |= VPICKVE2GR_U;
 
-			if (type & SLJIT_SIMD_LANE_SIGNED)
-				ins |= (sljit_ins)(VPICKVE2GR_U ^ (0b111 << 18));
-			else
-				ins |= VPICKVE2GR_U;
-
-			FAIL_IF(push_inst(compiler, VOR_V | (sljit_ins)1 << 26 | FRD(TMP_FREG1) | FRJ(freg) | FRK(freg)));
-			FAIL_IF(push_inst(compiler, XVPERMI | (sljit_ins)1 << 18 | FRD(TMP_FREG1) | FRJ(freg) | IMM_I8(1)));
-			return push_inst(compiler, ins | RD(srcdst) | FRJ(TMP_FREG1) | IMM_V(lane_index % (2 << (3 - elem_size))));
+					FAIL_IF(push_inst(compiler, VOR_V | (sljit_ins)1 << 26 | FRD(TMP_FREG1) | FRJ(freg) | FRK(freg)));
+					FAIL_IF(push_inst(compiler, XVPERMI | (sljit_ins)1 << 18 | FRD(TMP_FREG1) | FRJ(freg) | IMM_I8(1)));
+					return push_inst(compiler, ins | RD(srcdst) | FRJ(TMP_FREG1) | IMM_V(lane_index % (2 << (3 - elem_size))));
+				}
+			} else {
+				ins ^= (sljit_ins)0b1 << (15 - elem_size);
+				ins |= (sljit_ins)1 << 26;
+			}
 		}
 
 		return push_inst(compiler, ins | RD(srcdst) | FRJ(freg) | IMM_V(lane_index));
