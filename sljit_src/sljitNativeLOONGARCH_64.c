@@ -3198,7 +3198,7 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_simd_mov(struct sljit_compiler *co
 		ins = (type & SLJIT_SIMD_STORE) ? XVST : XVLD;
 
 	if (FAST_IS_REG(srcdst) && (srcdstw >= I12_MIN && srcdstw <= I12_MAX))
-		return push_inst(compiler, ins | FRD(freg) | RJ(srcdst) | IMM_I12(srcdstw));
+		return push_inst(compiler, ins | FRD(freg) | RJ((sljit_u8)srcdst) | IMM_I12(srcdstw));
 	else {
 		FAIL_IF(sljit_emit_simd_mem_offset(compiler, &srcdst, srcdstw));
 		return push_inst(compiler, ins | FRD(freg) | RJ(srcdst) | IMM_I12(0));
@@ -3290,9 +3290,6 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_simd_lane_mov(struct sljit_compile
 
 	if (type & SLJIT_SIMD_TEST)
 		return SLJIT_SUCCESS;
-
-	// ins = reg_size == 5 ? (sljit_ins)(0b111111 ^ (0b111111 >> elem_size)) << 10 : (sljit_ins)(0b111111 ^ (0b11111 >> elem_size)) << 10;
-	// return push_inst(compiler, VPICKVE2GR_U | ins | RD(srcdst) | FRJ(freg) | IMM_V(lane_index));
 
 	if (type & SLJIT_SIMD_LANE_ZERO) {
 		ins = (reg_size == 5) ? ((sljit_ins)1 << 26) : 0;
@@ -3464,7 +3461,7 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_simd_extend(struct sljit_compiler 
 			ins = (type & SLJIT_SIMD_STORE) ? XVST : XVLD;
 
 		if (FAST_IS_REG(src) && (srcw >= I12_MIN && srcw <= I12_MAX))
-			FAIL_IF(push_inst(compiler, ins | FRD(freg) | RJ(src) | IMM_I12(srcw)));
+			FAIL_IF(push_inst(compiler, ins | FRD(freg) | RJ((sljit_u8)src) | IMM_I12(srcw)));
 		else {
 			FAIL_IF(sljit_emit_simd_mem_offset(compiler, &src, srcw));
 			FAIL_IF(push_inst(compiler, ins | FRD(freg) | RJ(src) | IMM_I12(0)));
