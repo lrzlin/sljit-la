@@ -3319,11 +3319,14 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_simd_lane_mov(struct sljit_compile
 
 			if (reg_size == 5) {
 				if (elem_size < 2) {
+					FAIL_IF(push_inst(compiler, VOR_V | (sljit_ins)1 << 26 | FRD(TMP_FREG1) | FRJ(freg) | FRK(freg)));
 					if (lane_index >= (2 << (3 - elem_size))) {
-						FAIL_IF(push_inst(compiler, VOR_V | (sljit_ins)1 << 26 | FRD(TMP_FREG1) | FRJ(freg) | FRK(freg)));
 						FAIL_IF(push_inst(compiler, XVPERMI | (sljit_ins)1 << 18 | FRD(TMP_FREG1) | FRJ(freg) | IMM_I8(1)));
 						FAIL_IF(push_inst(compiler, VINSGR2VR | ins | FRD(TMP_FREG1) | RJ(srcdst) | IMM_V(lane_index % (2 << (3 - elem_size)))));
 						return push_inst(compiler, XVPERMI | (sljit_ins)1 << 18 | FRD(freg) | FRJ(TMP_FREG1) | IMM_I8(2));
+					} else {
+						FAIL_IF(push_inst(compiler, VINSGR2VR | ins | FRD(freg) | RJ(srcdst) | IMM_V(lane_index)));
+						return push_inst(compiler, XVPERMI | (sljit_ins)1 << 18 | FRD(freg) | FRJ(TMP_FREG1) | IMM_I8(18));
 					}
 				} else
 					ins = (sljit_ins)(0b111111 ^ (0b111111 >> elem_size)) << 10 | (sljit_ins)1 << 26;
@@ -3382,11 +3385,14 @@ SLJIT_API_FUNC_ATTRIBUTE sljit_s32 sljit_emit_simd_lane_mov(struct sljit_compile
 
 		if (reg_size == 5) {
 			if (elem_size < 2) {
+				FAIL_IF(push_inst(compiler, VOR_V | (sljit_ins)1 << 26 | FRD(TMP_FREG1) | FRJ(freg) | FRK(freg)));
 				if (lane_index >= (2 << (3 - elem_size))) {
-					FAIL_IF(push_inst(compiler, VOR_V | (sljit_ins)1 << 26 | FRD(TMP_FREG1) | FRJ(freg) | FRK(freg)));
 					FAIL_IF(push_inst(compiler, XVPERMI | (sljit_ins)1 << 18 | FRD(TMP_FREG1) | FRJ(freg) | IMM_I8(1)));
 					FAIL_IF(push_inst(compiler, VINSGR2VR | ins | FRD(TMP_FREG1) | RJ(srcdst) | IMM_V(lane_index % (2 << (3 - elem_size)))));
 					return push_inst(compiler, XVPERMI | (sljit_ins)1 << 18 | FRD(freg) | FRJ(TMP_FREG1) | IMM_I8(2));
+				} else {
+					FAIL_IF(push_inst(compiler, VINSGR2VR | ins | FRD(freg) | RJ(srcdst) | IMM_V(lane_index)));
+					return push_inst(compiler, XVPERMI | (sljit_ins)1 << 18 | FRD(freg) | FRJ(TMP_FREG1) | IMM_I8(18));
 				}
 			} else
 				ins = (sljit_ins)(0b111111 ^ (0b111111 >> elem_size)) << 10 | (sljit_ins)1 << 26;
